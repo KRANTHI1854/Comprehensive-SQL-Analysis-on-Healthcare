@@ -4,9 +4,10 @@
 The objective of this project is to clean, transform, and analyze a healthcare dataset using SQL. By uncovering patterns and trends, the analysis provides actionable insights into patient demographics, medical conditions, billing details, and more. The project demonstrates advanced SQL techniques and sets the stage for creating interactive dashboards using tools like Power BI or Tableau.
 
 ---
-
-### 📂 **Dataset Used**  
-🔗 [Access the Dataset Here](#) *(Replace with the actual link)*  
+  
+### 📂 Dataset Used  
+The dataset for this project.  
+🔗 [Healthcare Dataset](https://github.com/KRANTHI1854/Comprehensive-SQL-Analysis-on-Healthcare/blob/main/healthcare_dataset.csv)
 
 ---
 
@@ -101,5 +102,6 @@ The objective of this project is to clean, transform, and analyze a healthcare d
 
 ---
 
-### 🖼️ **Dashboard Preview**  
-*(Include a placeholder for your dashboard preview, if applicable)*  
+### 📜 SQL Queries File  
+SQL Queries Document  
+🔗 [SQL Queries Document](https://github.com/KRANTHI1854/Comprehensive-SQL-Analysis-on-Healthcare/blob/main/Comprehensive_SQL_Analysis_on_Healthcare%20(1).docx)
