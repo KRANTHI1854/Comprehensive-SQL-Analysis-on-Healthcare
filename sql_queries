@@ -1,25 +1,26 @@
--- STEP 1: VERIFY DATABASE AND TABLE
+-- STEP 1: SELECT DATABASE
 
 USE hospital;
-
 SET SQL_SAFE_UPDATES = 0;
 
--- 2. Handle missing ages by filling with the average age
+-- STEP 2: CLEANING & STANDARDIZATION
+
+-- 2.1 Handle missing ages by filling with the average
 UPDATE healthcare 
 SET Age = (SELECT AVG(Age) FROM (SELECT * FROM healthcare) AS temp)
 WHERE Age IS NULL;
 
--- 2. Replace Null Values in Gender with 'Unknown'
+-- 2.2 Replace null values in Gender with 'Unknown'
 UPDATE healthcare
 SET Gender = 'Unknown'
 WHERE Gender IS NULL OR Gender = '';
 
--- 3. Correct Invalid Age Entries (Negative or Unreasonably High Ages)
+-- 2.3 Set negative ages to NULL
 UPDATE healthcare
 SET Age = NULL
-WHERE Age < 0 ;
+WHERE Age < 0;
 
--- 4. Standardize Blood Type Entries
+-- 2.4 Standardize Blood Type entries
 UPDATE healthcare
 SET `Blood Type` = CASE 
     WHEN `Blood Type` IN ('a+', 'A +', 'A pos', 'a positive') THEN 'A+'
@@ -29,50 +30,34 @@ SET `Blood Type` = CASE
     ELSE 'Unknown'
 END;
 
+-- STEP 3: NULL CHECK
 
--- 7. Filter Out Records with Missing Essential Fields
-   
 SELECT *
 FROM healthcare
 WHERE Name IS NULL
-OR Age IS NULL
-OR Gender IS NULL
-OR `Blood Type` IS NULL
-OR `Medical Condition` IS NULL
-OR `Date of Admission` IS NULL
-OR Doctor IS NULL
-OR Hospital IS NULL
-OR `Insurance Provider` IS NULL
-OR `Billing Amount` IS NULL
-OR `Room Number` IS NULL
-OR `Admission Type` IS NULL
-OR `Discharge Date` IS NULL
-OR Medication IS NULL
-OR `Test Results` IS NULL;
+   OR Age IS NULL
+   OR Gender IS NULL
+   OR `Blood Type` IS NULL
+   OR `Medical Condition` IS NULL
+   OR `Date of Admission` IS NULL
+   OR Doctor IS NULL
+   OR Hospital IS NULL
+   OR `Insurance Provider` IS NULL
+   OR `Billing Amount` IS NULL
+   OR `Room Number` IS NULL
+   OR `Admission Type` IS NULL
+   OR `Discharge Date` IS NULL
+   OR Medication IS NULL
+   OR `Test Results` IS NULL;
 
+-- STEP 4: DATE CLEANING
 
-
--- 9. Extract Month and Year from Admission Dates for Further Analysis
-ALTER TABLE healthcare ADD COLUMN Admission_Month VARCHAR(20), ADD COLUMN Admission_Year INT;
-
-
-UPDATE healthcare
-SET Age_Group = CASE 
-    WHEN Age < 18 THEN 'Child'
-    WHEN Age BETWEEN 18 AND 35 THEN 'Young Adult'
-    WHEN Age BETWEEN 36 AND 60 THEN 'Adult'
-    ELSE 'Senior'
-END;
-
-
-
--- 3. Standardize date formats for admission dates
 UPDATE healthcare 
 SET Date_of_Admission = STR_TO_DATE(Date_of_Admission, '%d-%m-%Y')
 WHERE Date_of_Admission IS NOT NULL;
-DESCRIBE healthcare;
 
--- 4. Trim whitespace from all text fields
+-- STEP 5: TRIM WHITESPACE
+
 UPDATE healthcare 
 SET Name = TRIM(Name),
     Gender = TRIM(Gender),
@@ -84,160 +69,174 @@ SET Name = TRIM(Name),
     Medication = TRIM(Medication),
     `Test Results` = TRIM(`Test Results`);
 
--- 5. Ensure consistent capitalization in text fields
+-- STEP 6: UPPERCASE TEXT
+
 UPDATE healthcare 
 SET Gender = UPPER(Gender),
     `Blood Type` = UPPER(`Blood Type`),
     `Test Results` = UPPER(`Test Results`);
 
--- STEP 3: BASIC DATA ANALYSIS
--- 6. View all data
+-- STEP 7: FEATURE ENGINEERING
+
+ALTER TABLE healthcare ADD COLUMN Admission_Month VARCHAR(20), ADD COLUMN Admission_Year INT;
+
+UPDATE healthcare
+SET Age_Group = CASE 
+    WHEN Age < 18 THEN 'Child'
+    WHEN Age BETWEEN 18 AND 35 THEN 'Young Adult'
+    WHEN Age BETWEEN 36 AND 60 THEN 'Adult'
+    ELSE 'Senior'
+END;
+
+
+
+-- STEP 8: EXPLORATORY DATA ANALYSIS
+
+
+-- 8.1 View all data
 SELECT * FROM healthcare;
 
--- 7. Count the number of records
+-- 8.2 Record count
 SELECT COUNT(*) AS Total_Patients FROM healthcare;
 
--- 8. Display distinct medical conditions
+-- 8.3 Distinct medical conditions
 SELECT DISTINCT `Medical Condition` FROM healthcare;
 
--- 9. Count patients by gender
+-- 8.4 Patients by gender
 SELECT Gender, COUNT(*) AS Count FROM healthcare GROUP BY Gender;
 
--- 10. Find the average age of patients
+-- 8.5 Average age
 SELECT AVG(Age) AS Average_Age FROM healthcare;
 
--- STEP 4: INTERMEDIATE ANALYSIS
--- 11. List patients admitted after 2020
+-- 8.6 Patients after 2020
 SELECT * FROM healthcare WHERE Date_of_Admission > '2020-01-01';
 
--- 12. Find the total billing amount grouped by hospital
+-- 8.7 Billing per hospital
 SELECT Hospital, SUM(`Billing Amount`) AS Total_Billing 
 FROM healthcare 
 GROUP BY Hospital;
 
-
--- 13. Count the number of patients by admission type
+-- 8.8 Count by admission type
 SELECT `Admission Type`, COUNT(*) AS Count 
 FROM healthcare 
 GROUP BY `Admission Type`;
 
--- 14. Find the doctor with the most patients
+-- 8.9 Top doctor
 SELECT Doctor, COUNT(*) AS Patient_Count 
 FROM healthcare 
 GROUP BY Doctor 
 ORDER BY Patient_Count DESC 
 LIMIT 1;
 
--- 15. Find the room number with the highest total billing
+-- 8.10 Top room by billing
 SELECT `Room Number`, SUM(`Billing Amount`) AS Total_Billing 
 FROM healthcare 
 GROUP BY `Room Number` 
 ORDER BY Total_Billing DESC 
 LIMIT 1;
 
--- STEP 5: ADVANCED ANALYSIS
--- 16. List patients with abnormal test results
-SELECT * 
-FROM healthcare 
-WHERE `Test Results` = 'Abnormal';
 
--- 17. Calculate the average billing amount for different medical conditions
+
+
+-- STEP 9: ADVANCED ANALYSIS
+
+-- 9.1 Abnormal test results
+SELECT * FROM healthcare WHERE `Test Results` = 'ABNORMAL';
+
+-- 9.2 Avg billing by condition
 SELECT `Medical Condition`, AVG(`Billing Amount`) AS Average_Billing 
 FROM healthcare 
 GROUP BY `Medical Condition`;
 
+-- 9.3 Count by blood type
+SELECT `Blood Type`, COUNT(*) AS Count FROM healthcare GROUP BY `Blood Type`;
 
--- 19. Count the number of patients per blood type
-SELECT `Blood Type`, COUNT(*) AS Count 
-FROM healthcare 
-GROUP BY `Blood Type`;
-
--- 20. Identify top 3 medications prescribed
+-- 9.4 Top medications
 SELECT Medication, COUNT(*) AS Prescription_Count 
 FROM healthcare 
 GROUP BY Medication 
 ORDER BY Prescription_Count DESC 
 LIMIT 3;
 
--- STEP 6: COMPLEX ANALYSIS
--- 21. Find the hospital with the highest average billing amount
+-- 9.5 Hospital with highest avg billing
 SELECT Hospital, AVG(`Billing Amount`) AS Average_Billing 
 FROM healthcare 
 GROUP BY Hospital 
 ORDER BY Average_Billing DESC 
 LIMIT 1;
 
--- 22. Calculate total billing for patients covered by each insurance provider
+-- 9.6 Billing by insurance
 SELECT `Insurance Provider`, SUM(`Billing Amount`) AS Total_Billing 
 FROM healthcare 
 GROUP BY `Insurance Provider`;
 
--- 24. List doctors treating more than 5 patients
+-- 9.7 Doctors with >5 patients
 SELECT Doctor, COUNT(*) AS Patient_Count 
 FROM healthcare 
 GROUP BY Doctor 
 HAVING Patient_Count > 5;
 
--- 25. Identify the most common medical condition treated
+-- 9.8 Most common condition
 SELECT `Medical Condition`, COUNT(*) AS Frequency 
 FROM healthcare 
 GROUP BY `Medical Condition` 
 ORDER BY Frequency DESC 
 LIMIT 1;
 
--- 26. List all patients who were billed more than the average billing amount
+-- 9.9 Billing > avg
 SELECT * 
 FROM healthcare 
 WHERE `Billing Amount` > (SELECT AVG(`Billing Amount`) FROM healthcare);
 
--- 27. Find the top 5 hospitals by the number of patients treated
+-- 9.10 Top 5 hospitals
 SELECT Hospital, COUNT(*) AS Patient_Count 
 FROM healthcare 
 GROUP BY Hospital 
 ORDER BY Patient_Count DESC 
 LIMIT 5;
 
--- 29. Calculate the percentage of patients per gender
+-- STEP 10: STATISTICS & AGGREGATIONS
+
+-- 10.1 Gender %
 SELECT Gender, (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM healthcare)) AS Percentage 
 FROM healthcare 
 GROUP BY Gender;
 
--- 30. List all unique combinations of medication and test results
-SELECT DISTINCT Medication, `Test Results` 
-FROM healthcare;
+-- 10.2 Unique med/test results
+SELECT DISTINCT Medication, `Test Results` FROM healthcare;
 
--- 31. Find patients who have the same medical condition and medication
+-- 10.3 Same condition & med
 SELECT * 
 FROM healthcare h1 
 WHERE EXISTS (
     SELECT 1 
     FROM healthcare h2 
     WHERE h1.`Medical Condition` = h2.`Medical Condition` 
-    AND h1.Medication = h2.Medication 
-    AND h1.ID <> h2.ID
+      AND h1.Medication = h2.Medication 
+      AND h1.ID <> h2.ID
 );
 
--- 32. Determine the earliest and latest admission dates
+-- 10.4 Min/Max Admission Date
 SELECT MIN(`Date of Admission`) AS Earliest_Admission, MAX(`Date of Admission`) AS Latest_Admission 
 FROM healthcare;
 
--- 33. Find all patients who were readmitted (assume patients with the same name)
+-- 10.5 Readmitted patients
 SELECT Name, COUNT(*) AS Readmissions 
 FROM healthcare 
 GROUP BY Name 
 HAVING Readmissions > 1;
 
--- 34. Identify doctors who handled patients with abnormal test results
+-- 10.6 Doctors with abnormal patients
 SELECT DISTINCT Doctor 
 FROM healthcare 
-WHERE `Test Results` = 'Abnormal';
+WHERE `Test Results` = 'ABNORMAL';
 
--- 35. Calculate the average stay length by admission type
+-- 10.7 Avg stay by type
 SELECT `Admission Type`, AVG(DATEDIFF(`Discharge Date`, `Date of Admission`)) AS Avg_Stay_Length 
 FROM healthcare 
 GROUP BY `Admission Type`;
 
--- 36. Find patients whose billing amount is within the top 10%
+-- 10.8 Top 10% billing
 SELECT * 
 FROM healthcare 
 WHERE `Billing Amount` >= (
@@ -248,26 +247,21 @@ WHERE `Billing Amount` >= (
         FROM healthcare
     ) AS Ranked
     WHERE Percentile >= 0.9
-    LIMIT 3
 );
 
--- 37. Determine the correlation between age and billing amount (basic observation)
+-- 10.9 Age vs billing (visual data)
 SELECT Age, `Billing Amount` 
 FROM healthcare 
 ORDER BY Age;
 
--- 39. Find the top 3 conditions with the highest average billing amount
+-- 10.10 Top 3 conditions by billing
 SELECT `Medical Condition`, AVG(`Billing Amount`) AS Avg_Billing 
 FROM healthcare 
 GROUP BY `Medical Condition` 
 ORDER BY Avg_Billing DESC 
 LIMIT 3;
 
--- 40. Identify the total number of patients for each blood type and their average age
-SELECT `Blood Type`, COUNT(*) AS Total_Patients, AVG(Age) AS Avg_Age 
-FROM healthcare 
-GROUP BY `Blood Type`;
-
+-- 10.11 Blood type + Avg Age
 SELECT `Blood Type`, COUNT(*) AS Total_Patients, AVG(Age) AS Avg_Age 
 FROM healthcare 
 GROUP BY `Blood Type`;
